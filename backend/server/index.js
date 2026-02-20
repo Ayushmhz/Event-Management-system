@@ -11,54 +11,53 @@ const registrationRoutes = require('./routes/registrations');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Resolve frontend path
+const frontendPath = path.resolve(__dirname, '../../frontend/public');
+
+// Middlewares
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, '../../frontend/public')));
 
-// Routes
+// 1. Serve static files FIRST (images, CSS, JS)
+app.use(express.static(frontendPath));
+
+// 2. API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/registrations', registrationRoutes);
 
-// Health Check
+// 3. Health Check
 app.get('/health', (req, res) => {
-    res.json({ status: 'Server is running' });
+    res.json({ status: 'Server is running', env: process.env.NODE_ENV });
 });
 
+// 4. Serve the main index.html for the root URL
+app.get('/', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// 5. Catch-all for any other frontend routing (Must be last)
+app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(frontendPath, 'index.html'));
+    }
+});
 
 const db = require('./db');
 
-const startServer = async (port, retries = 0) => {
+const startServer = async (port) => {
     try {
-        const server = app.listen(port, async () => {
-            console.log(`Server running on http://localhost:${port}`);
-            try {
-                await db.execute('SELECT 1');
-                console.log('✅ Connected to MySQL Database successfully.');
-            } catch (err) {
-                console.error('❌ Database connection failed!');
-                console.error('Error details:', err.message);
-                console.log('Make sure XAMPP MySQL is running and the database "college_event_mgmt" exists.');
-            }
-        });
+        app.listen(port, '0.0.0.0', () => {
+            console.log(`🚀 Server launched on port ${port}`);
 
-        server.on('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                if (retries < 3) {
-                    console.log(`Port ${port} is in use, trying port ${port + 1}...`);
-                    startServer(port + 1, retries + 1);
-                } else {
-                    console.error(`Unable to find an available port after ${retries} attempts.`);
-                    process.exit(1);
-                }
-            } else {
-                console.error('Server error:', err);
-            }
+            // Check DB connection
+            db.execute('SELECT 1')
+                .then(() => console.log('✅ MySQL Database Connected'))
+                .catch(err => console.error('❌ DB Connection Error:', err.message));
         });
     } catch (err) {
         console.error('Failed to start server:', err);
     }
 };
 
-startServer(parseInt(PORT, 10) || 5000);
+startServer(PORT);

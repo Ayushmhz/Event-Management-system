@@ -7,11 +7,17 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 // Cloudinary Configuration
-cloudinary.config({
+const cloudinaryConfig = {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
-});
+};
+
+if (cloudinaryConfig.cloud_name) {
+    cloudinary.config(cloudinaryConfig);
+} else {
+    console.warn('⚠️ Cloudinary environment variables are missing. Image uploads will not work.');
+}
 
 // Cloudinary Storage for Event Thumbnails
 const storage = new CloudinaryStorage({
