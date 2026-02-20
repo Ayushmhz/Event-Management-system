@@ -6,15 +6,22 @@ const db = require('../db');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 require('dotenv').config();
 const multer = require('multer');
-const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Multer Storage for Profile Pics
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../../../frontend/public/uploads/profiles/'));
-    },
-    filename: (req, file, cb) => {
-        cb(null, 'profile-' + Date.now() + path.extname(file.originalname));
+// Cloudinary Configuration
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Cloudinary Storage for Profile Pics
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'college-events/profiles',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
     }
 });
 const upload = multer({ storage: storage });
@@ -73,7 +80,7 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 role: user.role,
                 faculty: user.faculty,
-                profile_pic: user.profile_pic ? `/uploads/profiles/${user.profile_pic}` : null
+                profile_pic: user.profile_pic || null
             }
         });
     } catch (err) {
@@ -91,7 +98,7 @@ router.get('/me', authenticateToken, async (req, res) => {
         const user = users[0];
         res.json({
             ...user,
-            profile_pic: user.profile_pic ? `/uploads/profiles/${user.profile_pic}` : null
+            profile_pic: user.profile_pic || null
         });
     } catch (err) {
         console.error(err);
@@ -108,7 +115,7 @@ router.post('/update-profile', authenticateToken, upload.single('profile_pic'), 
 
     if (req.file) {
         query += ', profile_pic = ?';
-        params.push(req.file.filename);
+        params.push(req.file.path);
     }
 
     query += ' WHERE id = ?';
@@ -118,7 +125,7 @@ router.post('/update-profile', authenticateToken, upload.single('profile_pic'), 
         await db.execute(query, params);
         res.json({
             message: 'Profile updated successfully',
-            profile_pic: req.file ? `/uploads/profiles/${req.file.filename}` : undefined
+            profile_pic: req.file ? req.file.path : undefined
         });
     } catch (err) {
         console.error(err);

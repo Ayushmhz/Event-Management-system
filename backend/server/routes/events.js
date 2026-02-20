@@ -3,15 +3,22 @@ const router = express.Router();
 const db = require('../db');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 const multer = require('multer');
-const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Multer Storage Configuration
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../../../frontend/public/uploads/'));
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
+// Cloudinary Configuration
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Cloudinary Storage for Event Thumbnails
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'college-events/thumbnails',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
     }
 });
 
@@ -37,7 +44,7 @@ router.get('/', async (req, res) => {
 // Create event (Admin only)
 router.post('/', authenticateToken, isAdmin, upload.single('thumbnail'), async (req, res) => {
     const { title, description, event_date, event_time, location, capacity, registration_deadline } = req.body;
-    const image_url = req.file ? `/uploads/${req.file.filename}` : 'https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+    const image_url = req.file ? req.file.path : 'https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
 
     try {
         const [conflicts] = await db.execute(
@@ -72,7 +79,7 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('thumbnail'), async
         let image_url = existing[0].image_url;
 
         if (req.file) {
-            image_url = `/uploads/${req.file.filename}`;
+            image_url = req.file.path;
         }
 
         const [conflicts] = await db.execute(
