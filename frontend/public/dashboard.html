@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | CollegeEventHub</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            padding: 2rem;
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-nav {
+            margin-top: 3rem;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            transition: 0.3s;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            border-left: 4px solid var(--primary);
+        }
+
+        .main-content {
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            width: 500px;
+            padding: 2.5rem 2.5rem 3.5rem;
+            /* Increased bottom padding */
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .mobile-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            z-index: 1002;
+        }
+
+        .mobile-toggle span {
+            display: block;
+            width: 25px;
+            height: 2px;
+            background: white;
+            border-radius: 2px;
+            transition: 0.3s;
+        }
+
+        /* Dashboard Mobile Responsiveness */
+        @media (max-width: 992px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+                padding: 1.5rem;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+
+            .mobile-toggle {
+                display: flex;
+            }
+
+            .sidebar-content {
+                display: none;
+                width: 100%;
+                animation: fadeIn 0.3s ease;
+            }
+
+            .sidebar-content.active {
+                display: block;
+            }
+
+            .sidebar-nav {
+                margin-top: 1.5rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .nav-item {
+                margin-bottom: 0;
+                padding: 1rem;
+                font-size: 1rem;
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .user-info {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                padding-top: 1.5rem;
+                margin-top: 1.5rem;
+            }
+
+            .user-info p {
+                margin-bottom: 0.5rem !important;
+            }
+
+            .user-info button {
+                width: 100% !important;
+                margin-top: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1.5rem;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1rem;
+            }
+
+            #admin-actions {
+                width: 100%;
+            }
+
+            #admin-actions button {
+                width: 100%;
+            }
+
+            .detail-modal-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .profile-dropdown {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            transition: 0.3s;
+        }
+
+        .profile-dropdown:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .profile-img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 220px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin-top: 0.75rem;
+            display: none;
+            flex-direction: column;
+            padding: 0.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+        }
+
+        .dropdown-menu.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: white;
+        }
+
+        .dropdown-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+    <script>
+        function toggleMobileMenu() {
+            const content = document.getElementById('sidebar-content');
+            content.classList.toggle('active');
+
+            // Animate hamburger to X
+            const spans = document.querySelectorAll('.mobile-toggle span');
+            const isActive = content.classList.contains('active');
+
+            if (isActive) {
+                spans[0].style.transform = 'translateY(7px) rotate(45deg)';
+                spans[1].style.opacity = '0';
+                spans[2].style.transform = 'translateY(-7px) rotate(-45deg)';
+            } else {
+                spans[0].style.transform = 'none';
+                spans[1].style.opacity = '1';
+                spans[2].style.transform = 'none';
+            }
+        }
+
+        function toggleProfileMenu(e) {
+            e.stopPropagation();
+            document.getElementById('profile-menu').classList.toggle('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            document.getElementById('profile-menu')?.classList.remove('active');
+        });
+    </script>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar glass" style="border-radius: 0;">
+            <div style="display: flex; align-items: center; width: 100%; gap: 1rem;">
+                <!-- 3 Lines Hamburger Menu -->
+                <button class="mobile-toggle" onclick="toggleMobileMenu()" style="order: -1;">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="logo">Event Management <span style="color: var(--primary);">System</span></div>
+            </div>
+
+            <div id="sidebar-content" class="sidebar-content">
+                <div class="sidebar-nav">
+                    <div class="nav-item active" onclick="showSection('home')">Home</div>
+                    <div class="nav-item" onclick="showSection('browse')">Browse Events</div>
+                    <div class="nav-item" id="student-regs-btn" onclick="showSection('my-regs')">My Registrations</div>
+                    <div class="nav-item" id="admin-mgmt-btn" style="display: none;" onclick="showSection('manage')">
+                        Manage
+                        Events</div>
+                    <div class="nav-item" id="admin-regs-btn" style="display: none;" onclick="showSection('all-regs')">
+                        Student Registrations</div>
+                    <div class="nav-item" id="admin-users-btn" style="display: none;" onclick="showSection('users')">
+                        User
+                        Management</div>
+                    <div class="nav-item" onclick="showSection('settings')">Settings</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; position: relative;">
+                <h2 id="section-title">Home</h2>
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <div id="admin-actions" style="display: none;">
+                        <button class="btn btn-primary" onclick="openModal()">+ Create Event</button>
+                    </div>
+                    <div class="profile-dropdown" onclick="toggleProfileMenu(event)">
+                        <span id="header-user-name" style="font-size: 0.9rem; font-weight: 500;">User Name</span>
+                        <img id="header-user-img"
+                            src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" class="profile-img">
+                        <div id="profile-menu" class="dropdown-menu">
+                            <div class="dropdown-header">
+                                <p id="dropdown-user-name"
+                                    style="color: white; font-weight: 600; margin-bottom: 0.15rem;">User Name</p>
+                                <p id="dropdown-user-role"
+                                    style="font-size: 0.75rem; color: var(--text-muted); text-transform: capitalize;">
+                                    Student</p>
+                                <p id="dropdown-user-faculty"
+                                    style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">
+                                </p>
+                            </div>
+                            <div class="dropdown-item" onclick="showSection('settings')">⚙️ Account Settings</div>
+                            <div class="dropdown-item" onclick="logout()" style="color: #ef4444;">🚪 Logout</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Home Section -->
+            <section id="home-section">
+                <div class="glass"
+                    style="padding: 2.5rem; margin-bottom: 2.5rem; border-radius: 20px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);">
+                    <h1 style="margin-bottom: 0.75rem; font-size: 2.5rem;">Welcome back, <span id="welcome-name"
+                            style="background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">User</span>!
+                        👋</h1>
+                    <p style="font-size: 1.1rem; color: var(--text-muted);">Ready to see what's happening on campus
+                        today? Check out the latest events and your registrations below.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="glass stat-card" style="text-align: center; padding: 2rem;">
+                        <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">🎟️</span>
+                        <h3 id="stat-events-count"
+                            style="font-size: 2rem; margin-bottom: 0.25rem; -webkit-text-fill-color: white; background: none;">
+                            0</h3>
+                        <p
+                            style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 700;">
+                            Active Events</p>
+                    </div>
+                    <div class="glass stat-card" style="text-align: center; padding: 2rem;">
+                        <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">📅</span>
+                        <h3 id="stat-my-regs"
+                            style="font-size: 2rem; margin-bottom: 0.25rem; -webkit-text-fill-color: white; background: none;">
+                            0</h3>
+                        <p
+                            style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 700;">
+                            My Registrations</p>
+                    </div>
+                    <div class="glass stat-card" style="text-align: center; padding: 2rem;">
+                        <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">✨</span>
+                        <h3 id="stat-new"
+                            style="font-size: 2rem; margin-bottom: 0.25rem; -webkit-text-fill-color: white; background: none;">
+                            0</h3>
+                        <p
+                            style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 700;">
+                            New This Week</p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 3.5rem;">
+                    <h2
+                        style="margin-bottom: 1.5rem; font-size: 1.8rem; -webkit-text-fill-color: white; background: none;">
+                        Quick Actions</h2>
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                        <div class="glass" style="padding: 1.5rem; cursor: pointer; transition: 0.3s;"
+                            onclick="showSection('browse')">
+                            <h4 style="color: var(--primary); margin-bottom: 0.5rem;">🔍 Browse Events</h4>
+                            <p style="font-size: 0.9rem;">Discover workshops, seminars, and fests happening on campus.
+                            </p>
+                        </div>
+                        <div class="glass" style="padding: 1.5rem; cursor: pointer; transition: 0.3s;"
+                            onclick="showSection('my-regs')">
+                            <h4 style="color: var(--secondary); margin-bottom: 0.5rem;">📅 My Schedule</h4>
+                            <p style="font-size: 0.9rem;">Keep track of all the events you've registered for.</p>
+                        </div>
+                        <div class="glass" style="padding: 1.5rem; cursor: pointer; transition: 0.3s;"
+                            onclick="showSection('settings')">
+                            <h4 style="color: var(--accent); margin-bottom: 0.5rem;">⚙️ Account Settings</h4>
+                            <p style="font-size: 0.9rem;">Manage your profile and security credentials.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Browse Section -->
+            <section id="browse-section" class="event-grid">
+                <!-- Loaded via JS -->
+            </section>
+
+            <!-- My Registrations Section -->
+            <section id="my-regs-section" class="event-grid" style="display: none;">
+                <!-- Loaded via JS -->
+            </section>
+
+            <!-- Manage Events Section -->
+            <section id="manage-section" class="event-grid" style="display: none;">
+                <!-- Loaded via JS -->
+            </section>
+
+            <!-- Student Registrations Section (Admin Only) -->
+            <section id="all-regs-section" style="display: none;">
+                <div class="glass" style="padding: 1rem; border-radius: 12px; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--glass-border);">
+                                <th style="padding: 1rem;">Student Name</th>
+                                <th style="padding: 1rem;">Faculty</th>
+                                <th style="padding: 1rem;">Email</th>
+                                <th style="padding: 1rem;">Event Registered</th>
+                                <th style="padding: 1rem;">Registration Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="all-regs-table-body">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- User Management Section (Admin Only) -->
+            <section id="users-section" style="display: none;">
+                <div class="glass" style="padding: 1rem; border-radius: 12px; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--glass-border);">
+                                <th style="padding: 1rem;">Full Name</th>
+                                <th style="padding: 1rem;">Faculty</th>
+                                <th style="padding: 1rem;">Email</th>
+                                <th style="padding: 1rem;">Joined Date</th>
+                                <th style="padding: 1rem; text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings-section" style="display: none;">
+                <!-- Settings Navigation -->
+                <div class="glass" style="margin-bottom: 2rem; padding: 1rem; display: flex; gap: 1rem;">
+                    <button id="btn-settings-profile" class="btn btn-primary"
+                        onclick="switchSettingsTab('profile')">Edit Profile</button>
+                    <button id="btn-settings-password" class="btn btn-outline"
+                        onclick="switchSettingsTab('password')">Change Password</button>
+                </div>
+
+                <!-- Profile Info Card -->
+                <div id="settings-profile-card" class="glass animate-fade"
+                    style="padding: 2.5rem; max-width: 600px; margin: 0 auto;">
+                    <h3 style="margin-bottom: 2rem; -webkit-text-fill-color: var(--text-main); background: none;">
+                        Edit Profile</h3>
+                    <form id="update-profile-form">
+                        <div class="form-group" style="text-align: center; margin-bottom: 2rem;">
+                            <div style="position: relative; display: inline-block;">
+                                <img id="settings-profile-preview"
+                                    src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff"
+                                    style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid rgba(99, 102, 241, 0.2);">
+                                <label for="profile-pic-input"
+                                    style="position: absolute; bottom: 0; right: 0; background: var(--primary); width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                                    📸
+                                </label>
+                                <input type="file" id="profile-pic-input" accept="image/*" style="display: none;">
+                            </div>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;">Click the
+                                icon to upload a new photo</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="settings-fullname" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Faculty</label>
+                            <select id="settings-faculty" required>
+                                <option value="BCA" style="color: black;">BCA</option>
+                                <option value="BBS" style="color: black;">BBS</option>
+                                <option value="BSW" style="color: black;">BSW</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="settings-email" disabled style="opacity: 0.6; cursor: not-allowed;">
+                            <small style="color: var(--text-muted); font-size: 0.7rem;">Email cannot be
+                                changed</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save
+                            Changes</button>
+                    </form>
+                </div>
+
+                <!-- Change Password Card -->
+                <div id="settings-password-card" class="glass animate-fade"
+                    style="padding: 2.5rem; max-width: 600px; margin: 0 auto; display: none;">
+                    <h3 style="margin-bottom: 2rem; -webkit-text-fill-color: var(--text-main); background: none;">
+                        Security</h3>
+                    <form id="change-password-form">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" id="current-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="new-password" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirm-password" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Update
+                            Password</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="event-modal" class="modal">
+        <div class="glass modal-content animate-fade">
+            <button type="button" class="close-btn" onclick="closeModal()">&times;</button>
+            <h3 id="modal-title">Create New Event</h3>
+            <form id="event-form">
+                <input type="hidden" id="event-id">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="event-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="event-desc" rows="6" required></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Event Start Date</label>
+                        <input type="date" id="event-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Event Start Time</label>
+                        <input type="time" id="event-time" required>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" id="event-location" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Capacity</label>
+                        <input type="number" id="event-capacity" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Thumbnail Photo</label>
+                    <input type="file" id="event-thumbnail" accept="image/*">
+                    <div id="image-preview" style="margin-top: 1rem; display: none;">
+                        <img id="img-preview-src" src=""
+                            style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Registration Deadline Date</label>
+                    <input type="date" id="event-deadline" required>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-outline" style="flex: 1;"
+                        onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 2;">Save Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendees Modal -->
+    <div id="attendees-modal" class="modal">
+        <div class="glass modal-content" style="width: 600px; position: relative;">
+            <button class="close-btn" onclick="closeAttendeesModal()">&times;</button>
+            <h3>Event Attendees</h3>
+            <div id="attendee-list" style="margin-top: 1.5rem; max-height: 400px; overflow-y: auto;">
+                <!-- Loaded via JS -->
+            </div>
+            <button class="btn btn-outline" style="width: 100%; margin-top: 1.5rem;"
+                onclick="closeAttendeesModal()">Close</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Scroll Top Button -->
+    <div id="scroll-top" class="scroll-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        ↑
+    </div>
+
+    <!-- Event Details Modal -->
+    <div id="details-modal" class="modal">
+        <div class="glass modal-content" style="max-width: 700px; width: 90%;">
+            <button class="close-btn" onclick="closeDetailsModal()">&times;</button>
+            <div id="detail-image"
+                style="height: 300px; margin: -2.5rem -2.5rem 1.5rem; border-bottom: 1px solid var(--glass-border); background-size: cover; background-position: center; border-radius: 12px 12px 0 0;">
+            </div>
+            <div id="detail-badge" class="badge" style="position: static; display: inline-block; margin-bottom: 1rem;">
+            </div>
+            <h2 id="detail-title" style="margin-bottom: 1rem; -webkit-text-fill-color: var(--text-main);"></h2>
+
+            <div class="detail-modal-grid"
+                style="grid-template-columns: 1fr 1fr; display: grid; gap: 1rem; margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                <div id="detail-location"></div>
+                <div id="detail-time"></div>
+                <div id="detail-capacity"></div>
+                <div id="detail-deadline" style="color: var(--accent); font-weight: bold;"></div>
+            </div>
+
+            <div style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                <h4 style="color: var(--text-main); margin-bottom: 0.75rem;">About this Event</h4>
+                <p id="detail-desc"
+                    style="color: var(--text-muted); line-height: 1.7; white-space: pre-wrap; font-size: 0.95rem;"></p>
+            </div>
+
+            <div id="detail-actions" style="margin-top: 2rem;">
+                <!-- Filled via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+
+</html>

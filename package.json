@@ -1,0 +1,8 @@
+{
+  "name": "college-event-management-root",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "npm run start --prefix backend",
+    "dev": "npm run dev --prefix backend"
+  }
+}
