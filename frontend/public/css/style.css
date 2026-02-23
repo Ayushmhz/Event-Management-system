@@ -271,7 +271,7 @@ nav {
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(10px);
     }
 
     to {
@@ -281,7 +281,17 @@ nav {
 }
 
 .animate-fade {
-    animation: fadeIn 0.6s ease forwards;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.section-show {
+    display: block !important;
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+.section-show-grid {
+    display: grid !important;
+    animation: fadeIn 0.4s ease-out forwards;
 }
 
 /* Custom Scrollbar */

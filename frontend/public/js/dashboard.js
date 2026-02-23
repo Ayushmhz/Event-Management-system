@@ -1,5 +1,6 @@
 let currentUser = null;
 let allEvents = [];
+let currentActiveSection = 'home';
 
 function syncUserUI() {
     if (!currentUser) return;
@@ -124,9 +125,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
-async function loadEvents() {
+async function loadEvents(force = false) {
+    if (!force && allEvents.length > 0) {
+        renderEvents();
+        if ((currentUser.role || '').toLowerCase() === 'admin') renderManageTable();
+    }
+
     try {
-        allEvents = await apiFetch('/api/events');
+        const freshEvents = await apiFetch('/api/events');
+        allEvents = freshEvents;
         renderEvents();
         if ((currentUser.role || '').toLowerCase() === 'admin') renderManageTable();
     } catch (err) {
@@ -298,90 +305,71 @@ async function cancelRegistration(regId) {
 
 // Section Switching
 function showSection(section) {
+    if (section === currentActiveSection && section !== 'settings') return;
+
     const sections = ['home-section', 'browse-section', 'my-regs-section', 'manage-section', 'all-regs-section', 'users-section', 'settings-section'];
     const tabs = document.querySelectorAll('.nav-item');
 
+    // Fade out current section effectively
     sections.forEach(s => {
         const el = document.getElementById(s);
-        if (el) el.style.display = 'none';
+        if (el) {
+            el.style.display = 'none';
+            el.classList.remove('animate-fade', 'section-show', 'section-show-grid');
+        }
     });
     tabs.forEach(t => t.classList.remove('active'));
 
+    currentActiveSection = section;
+    const targetId = section === 'home' ? 'home-section' :
+        section === 'browse' ? 'browse-section' :
+            section === 'my-regs' ? 'my-regs-section' :
+                section === 'manage' ? 'manage-section' :
+                    section === 'all-regs' ? 'all-regs-section' :
+                        section === 'users' ? 'users-section' : 'settings-section';
+
+    const targetEl = document.getElementById(targetId);
+    if (!targetEl) return;
+
+    // Apply appropriate display class
+    const useGrid = ['browse-section', 'my-regs-section', 'manage-section'].includes(targetId);
+    targetEl.classList.add(useGrid ? 'section-show-grid' : 'section-show');
+
     if (section === 'home') {
-        document.getElementById('home-section').style.display = 'block';
         document.getElementById('section-title').textContent = 'Home';
         tabs[0].classList.add('active');
         updateHomeStats();
     } else if (section === 'browse') {
-        document.getElementById('browse-section').style.display = 'grid';
         document.getElementById('section-title').textContent = 'Browse Events';
         tabs[1].classList.add('active');
         loadEvents();
     } else if (section === 'my-regs') {
-        document.getElementById('my-regs-section').style.display = 'grid';
         document.getElementById('section-title').textContent = 'My Registrations';
         tabs[2].classList.add('active');
         loadMyRegistrations();
     } else if (section === 'manage') {
-        document.getElementById('manage-section').style.display = 'grid';
         document.getElementById('section-title').textContent = 'Manage Events';
         tabs[3].classList.add('active');
         loadEvents();
     } else if (section === 'all-regs') {
-        document.getElementById('all-regs-section').style.display = 'block';
         document.getElementById('section-title').textContent = 'Student Registrations';
         tabs[4].classList.add('active');
         loadAllRegistrations();
     } else if (section === 'users') {
-        document.getElementById('users-section').style.display = 'block';
         document.getElementById('section-title').textContent = 'User Management';
-        document.getElementById('admin-users-btn').classList.add('active');
+        const userBtn = document.getElementById('admin-users-btn');
+        if (userBtn) userBtn.classList.add('active');
         loadAllUsers();
     } else if (section === 'settings') {
-        document.getElementById('settings-section').style.display = 'block';
         document.getElementById('section-title').textContent = 'Account Settings';
         tabs[tabs.length - 1].classList.add('active');
-
-        // Default to profile tab
         switchSettingsTab('profile');
-
-        const role = (currentUser.role || '').toLowerCase();
-        const isAdmin = role === 'admin';
-
-        // FORCE populate fields immediately
-        const fullName = currentUser.fullname || currentUser.name || (currentUser.email ? currentUser.email.split('@')[0] : (isAdmin ? 'Admin' : 'User'));
-        const profilePic = currentUser.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=6366f1&color=fff`;
-
-        const nameInput = document.getElementById('settings-fullname');
-        const emailInput = document.getElementById('settings-email');
-        const settingsPreview = document.getElementById('settings-profile-preview');
-
-        if (nameInput) nameInput.value = fullName;
-        if (emailInput) {
-            emailInput.value = currentUser.email || '';
-            emailInput.disabled = true;
-        }
-        if (settingsPreview) {
-            // If it's a local path, fix it
-            let finalPic = profilePic;
-            if (!finalPic.startsWith('http')) {
-                finalPic = finalPic.startsWith('/') ? finalPic : '/' + finalPic;
-            }
-            settingsPreview.src = finalPic;
-        }
-
-        // Show faculty for everyone
-        const facultyGroup = document.getElementById('settings-faculty-group');
-        if (facultyGroup) {
-            facultyGroup.style.display = 'block';
-        }
-
         syncUserUI();
     }
 
-    // Auto-close sidebar on mobile after clicking a section
+    // Auto-close sidebar on mobile
     const sidebarContent = document.getElementById('sidebar-content');
-    if (window.innerWidth <= 992 && sidebarContent.classList.contains('active')) {
+    if (window.innerWidth <= 992 && sidebarContent && sidebarContent.classList.contains('active')) {
         toggleMobileMenu();
     }
 }
