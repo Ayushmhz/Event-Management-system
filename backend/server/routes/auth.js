@@ -116,25 +116,50 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.post('/update-profile', authenticateToken, upload.single('profile_pic'), async (req, res) => {
     const { fullname, faculty } = req.body;
     const userId = req.user.id;
-    let query = 'UPDATE users SET fullname = ?, faculty = ?';
-    let params = [fullname, faculty];
+
+    let queryParts = [];
+    let params = [];
+
+    if (fullname) {
+        queryParts.push('fullname = ?');
+        params.push(fullname);
+    }
+
+    if (faculty !== undefined) {
+        queryParts.push('faculty = ?');
+        params.push(faculty);
+    }
 
     if (req.file) {
-        query += ', profile_pic = ?';
+        queryParts.push('profile_pic = ?');
         params.push(req.file.path);
     }
 
-    query += ' WHERE id = ?';
+    if (queryParts.length === 0) {
+        return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    const query = `UPDATE users SET ${queryParts.join(', ')} WHERE id = ?`;
     params.push(userId);
 
     try {
         await db.execute(query, params);
+
+        let profilePicUrl = undefined;
+        if (req.file) {
+            profilePicUrl = req.file.path; // Cloudinary returns URL in path
+        }
+
         res.json({
             message: 'Profile updated successfully',
-            profile_pic: req.file ? req.file.path : undefined
+            profile_pic: profilePicUrl
         });
     } catch (err) {
-        console.error(err);
+        console.error('Update Profile Error:', err);
+        // Special check for missing columns - common in this dev environment
+        if (err.code === 'ER_BAD_FIELD_ERROR') {
+            return res.status(500).json({ message: 'Database schema mismatch. Please contact admin.' });
+        }
         res.status(500).json({ message: 'Server error' });
     }
 });

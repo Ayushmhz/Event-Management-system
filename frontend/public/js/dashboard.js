@@ -1,42 +1,125 @@
 let currentUser = null;
 let allEvents = [];
 
+function syncUserUI() {
+    if (!currentUser) return;
+
+    // 1. Robust Role & Name Detection
+    const userRole = (currentUser.role || 'student').toLowerCase();
+    const isAdmin = userRole === 'admin';
+    const fullName = currentUser.fullname || currentUser.name || (currentUser.email ? currentUser.email.split('@')[0] : (isAdmin ? 'Admin' : 'Student'));
+
+    // Debug log for troubleshooting (visible in developer console)
+    console.log('Syncing UI for:', { name: fullName, role: userRole, isAdmin });
+
+    // Better Image Path Handling
+    let profilePic = currentUser.profile_pic;
+    if (!profilePic) {
+        profilePic = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=6366f1&color=fff`;
+    } else if (!profilePic.startsWith('http')) {
+        profilePic = profilePic.startsWith('/') ? profilePic : '/' + profilePic;
+    }
+
+    // 2. Navigation & Actions Visibility
+    const adminMgmt = document.getElementById('admin-mgmt-btn');
+    const adminRegs = document.getElementById('admin-regs-btn');
+    const adminUsers = document.getElementById('admin-users-btn');
+    const adminActions = document.getElementById('admin-actions');
+    const studentRegs = document.getElementById('student-regs-btn');
+
+    if (isAdmin) {
+        if (adminMgmt) adminMgmt.style.display = 'block';
+        if (adminRegs) adminRegs.style.display = 'block';
+        if (adminUsers) adminUsers.style.display = 'block';
+        if (adminActions) adminActions.style.display = 'block';
+        if (studentRegs) studentRegs.style.display = 'none';
+
+        const dropRole = document.getElementById('dropdown-user-role');
+        if (dropRole) dropRole.textContent = 'Administrator';
+    } else {
+        if (adminMgmt) adminMgmt.style.display = 'none';
+        if (adminRegs) adminRegs.style.display = 'none';
+        if (adminUsers) adminUsers.style.display = 'none';
+        if (adminActions) adminActions.style.display = 'none';
+        if (studentRegs) studentRegs.style.display = 'block';
+
+        const dropRole = document.getElementById('dropdown-user-role');
+        if (dropRole) dropRole.textContent = 'Student';
+    }
+
+    // 3. Header & Welcome Section
+    const headerName = document.getElementById('header-user-name');
+    if (headerName) headerName.textContent = fullName;
+    const headerImg = document.getElementById('header-user-img');
+    if (headerImg) headerImg.src = profilePic;
+
+    const dropName = document.getElementById('dropdown-user-name');
+    if (dropName) dropName.textContent = fullName;
+
+    const dropFaculty = document.getElementById('dropdown-user-faculty');
+    if (dropFaculty) {
+        dropFaculty.textContent = currentUser.faculty || '';
+        dropFaculty.style.display = 'block';
+    }
+
+    const welcome = document.getElementById('welcome-name');
+    if (welcome) welcome.textContent = fullName;
+
+    // 4. Settings Form
+    const nameInput = document.getElementById('settings-fullname');
+    if (nameInput) nameInput.value = fullName;
+
+    const emailInput = document.getElementById('settings-email');
+    if (emailInput) {
+        emailInput.value = currentUser.email || '';
+        emailInput.disabled = true;
+    }
+
+    const facultyGroup = document.getElementById('settings-faculty-group');
+    if (facultyGroup) facultyGroup.style.display = 'block';
+
+    const facultySelect = document.getElementById('settings-faculty');
+    if (facultySelect) facultySelect.value = currentUser.faculty || 'BCA';
+
+    const settingsPreview = document.getElementById('settings-profile-preview');
+    if (settingsPreview) {
+        settingsPreview.src = profilePic;
+        settingsPreview.alt = fullName;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     currentUser = checkAuth();
     if (!currentUser) return;
 
-    // Initial user sync
+    // Phase 1: Immediate UI update using cached localStorage data (fixes flickers)
     syncUserUI();
 
-    // Fetch fresh user data (includes profile pic)
-    try {
-        const freshUser = await apiFetch('/api/auth/me');
-        currentUser = { ...currentUser, ...freshUser };
-        syncUserUI();
-    } catch (err) {
-        console.error('Failed to fetch user data', err);
-    }
-
-    // Role-based visibility
-    if (currentUser.role === 'admin') {
-        document.getElementById('admin-mgmt-btn').style.display = 'block';
-        document.getElementById('admin-regs-btn').style.display = 'block';
-        document.getElementById('admin-users-btn').style.display = 'block';
-        document.getElementById('admin-actions').style.display = 'block';
-    } else {
-        document.getElementById('student-regs-btn').style.display = 'block';
-    }
-
+    // Load initial section and data IMMEDIATELY (don't wait for server)
     showSection('home');
     loadEvents();
+
+    // Phase 2: Background refresh from server (non-blocking for UI)
+    try {
+        const freshUser = await apiFetch('/api/auth/me');
+        if (freshUser) {
+            currentUser = freshUser;
+            localStorage.setItem('user', JSON.stringify(freshUser));
+            syncUserUI(); // Re-sync with fresh server data
+        }
+    } catch (err) {
+        console.error('Failed to refresh user data:', err);
+    }
 
     // Scroll Top Button Logic
     window.addEventListener('scroll', () => {
         const scrollBtn = document.getElementById('scroll-top');
-        if (window.scrollY > 300) {
-            scrollBtn.classList.add('visible');
-        } else {
-            scrollBtn.classList.remove('visible');
+        if (scrollBtn) {
+            if (window.scrollY > 300) {
+                scrollBtn.classList.add('visible');
+            } else {
+                scrollBtn.classList.remove('visible');
+            }
         }
     });
 });
@@ -45,7 +128,7 @@ async function loadEvents() {
     try {
         allEvents = await apiFetch('/api/events');
         renderEvents();
-        if (currentUser.role === 'admin') renderManageTable();
+        if ((currentUser.role || '').toLowerCase() === 'admin') renderManageTable();
     } catch (err) {
         showToast('Failed to load events', 'error');
     }
@@ -75,7 +158,7 @@ function renderEvents() {
                         <span>📅 ${formatDate(event.event_date)}</span>
                         <span>👥 ${event.registered_count || 0}/${event.capacity} registered</span>
                     </div>
-                ${currentUser.role === 'student' ? `
+                ${(currentUser.role || '').toLowerCase() === 'student' ? `
                     ${isEnded
                     ? `<button disabled class="btn btn-outline" style="width: 100%; padding: 0.5rem; font-size: 0.85rem; opacity: 0.5; cursor: not-allowed; border: 1px solid #475569; color: #94a3b8;">Registration Closed</button>`
                     : `<button onclick="event.stopPropagation(); registerForEvent(${event.id})" class="btn btn-primary" style="width: 100%; padding: 0.5rem; font-size: 0.85rem;">Register Now</button>`
@@ -134,7 +217,7 @@ function viewEventDetails(id) {
 
     const isEnded = event.status === 'ended' || (event.registration_deadline && new Date(event.registration_deadline) < new Date());
 
-    if (currentUser.role === 'student') {
+    if ((currentUser.role || '').toLowerCase() === 'student') {
         if (isEnded) {
             actionHTML = `<button disabled class="btn btn-outline" style="width: 100%; margin-bottom: 1rem; opacity: 0.6; cursor: not-allowed; border-color: #64748b; color: #94a3b8;">Registration Closed</button>`;
         } else {
@@ -262,13 +345,38 @@ function showSection(section) {
         // Default to profile tab
         switchSettingsTab('profile');
 
-        // Populate settings form
-        document.getElementById('settings-fullname').value = currentUser.fullname || currentUser.name;
-        document.getElementById('settings-faculty').value = currentUser.faculty || 'BCA';
-        document.getElementById('settings-email').value = currentUser.email;
-        const profilePreview = document.getElementById('settings-profile-preview');
-        const defaultImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.fullname || currentUser.name)}&background=6366f1&color=fff`;
-        profilePreview.src = currentUser.profile_pic || defaultImg;
+        const role = (currentUser.role || '').toLowerCase();
+        const isAdmin = role === 'admin';
+
+        // FORCE populate fields immediately
+        const fullName = currentUser.fullname || currentUser.name || (currentUser.email ? currentUser.email.split('@')[0] : (isAdmin ? 'Admin' : 'User'));
+        const profilePic = currentUser.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=6366f1&color=fff`;
+
+        const nameInput = document.getElementById('settings-fullname');
+        const emailInput = document.getElementById('settings-email');
+        const settingsPreview = document.getElementById('settings-profile-preview');
+
+        if (nameInput) nameInput.value = fullName;
+        if (emailInput) {
+            emailInput.value = currentUser.email || '';
+            emailInput.disabled = true;
+        }
+        if (settingsPreview) {
+            // If it's a local path, fix it
+            let finalPic = profilePic;
+            if (!finalPic.startsWith('http')) {
+                finalPic = finalPic.startsWith('/') ? finalPic : '/' + finalPic;
+            }
+            settingsPreview.src = finalPic;
+        }
+
+        // Show faculty for everyone
+        const facultyGroup = document.getElementById('settings-faculty-group');
+        if (facultyGroup) {
+            facultyGroup.style.display = 'block';
+        }
+
+        syncUserUI();
     }
 
     // Auto-close sidebar on mobile after clicking a section
@@ -297,25 +405,10 @@ function switchSettingsTab(tab) {
     }
 }
 
-function syncUserUI() {
-    if (!currentUser) return;
-    const name = currentUser.fullname || currentUser.name;
-    const defaultImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`;
-    const pic = currentUser.profile_pic || defaultImg;
-
-    // Header
-    document.getElementById('header-user-name').textContent = name;
-    document.getElementById('header-user-img').src = pic;
-
-    // Dropdown
-    document.getElementById('dropdown-user-name').textContent = name;
-    document.getElementById('dropdown-user-role').textContent = currentUser.role;
-    document.getElementById('dropdown-user-faculty').textContent = currentUser.faculty || '';
-}
-
 async function updateHomeStats() {
     try {
-        document.getElementById('welcome-name').textContent = currentUser.name;
+        const fullName = currentUser.fullname || currentUser.name || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
+        document.getElementById('welcome-name').textContent = fullName;
 
         // Active Events Count
         const events = await apiFetch('/api/events');
@@ -583,6 +676,118 @@ function closeAttendeesModal() {
     document.getElementById('attendees-modal').style.display = 'none';
 }
 
+// ===================== IMAGE CROPPER =====================
+let cropImage = new Image();
+let cropScale = 1;
+let cropOffsetX = 0, cropOffsetY = 0;
+let cropDragging = false;
+let cropDragStartX = 0, cropDragStartY = 0;
+let croppedBlob = null;
+
+const CANVAS_SIZE = 260;
+
+function drawCropCanvas() {
+    const canvas = document.getElementById('crop-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    const scaledW = cropImage.width * cropScale;
+    const scaledH = cropImage.height * cropScale;
+    const x = (CANVAS_SIZE - scaledW) / 2 + cropOffsetX;
+    const y = (CANVAS_SIZE - scaledH) / 2 + cropOffsetY;
+
+    ctx.drawImage(cropImage, x, y, scaledW, scaledH);
+}
+
+function openCropModal(src) {
+    cropImage = new Image();
+    cropImage.onload = () => {
+        cropScale = 1;
+        cropOffsetX = 0;
+        cropOffsetY = 0;
+        document.getElementById('crop-zoom').value = 1;
+
+        // Auto-fit: scale so image fills the circle
+        const fitScale = Math.max(CANVAS_SIZE / cropImage.width, CANVAS_SIZE / cropImage.height);
+        cropScale = fitScale;
+        document.getElementById('crop-zoom').value = Math.min(fitScale, 3);
+
+        drawCropCanvas();
+        document.getElementById('crop-modal').style.display = 'flex';
+    };
+    cropImage.src = src;
+}
+
+function cancelCrop() {
+    document.getElementById('crop-modal').style.display = 'none';
+    document.getElementById('profile-pic-input').value = '';
+    croppedBlob = null;
+}
+
+function applyCrop() {
+    const canvas = document.getElementById('crop-canvas');
+    canvas.toBlob(blob => {
+        croppedBlob = blob;
+        // Show preview in settings
+        const url = URL.createObjectURL(blob);
+        document.getElementById('settings-profile-preview').src = url;
+        document.getElementById('crop-modal').style.display = 'none';
+
+        // Reset the file input value so picking the same file again triggers 'change'
+        const input = document.getElementById('profile-pic-input');
+        if (input) input.value = '';
+
+        // Scroll to the form so they see the Save button
+        document.getElementById('update-profile-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 'image/jpeg', 0.92);
+}
+
+// Zoom slider
+const cropZoomSlider = document.getElementById('crop-zoom');
+if (cropZoomSlider) {
+    cropZoomSlider.addEventListener('input', function () {
+        cropScale = parseFloat(this.value);
+        drawCropCanvas();
+    });
+}
+
+// Drag to reposition
+const cropCanvas = document.getElementById('crop-canvas');
+if (cropCanvas) {
+    cropCanvas.addEventListener('mousedown', e => {
+        cropDragging = true;
+        cropDragStartX = e.clientX - cropOffsetX;
+        cropDragStartY = e.clientY - cropOffsetY;
+        cropCanvas.style.cursor = 'grabbing';
+    });
+    window.addEventListener('mousemove', e => {
+        if (!cropDragging) return;
+        cropOffsetX = e.clientX - cropDragStartX;
+        cropOffsetY = e.clientY - cropDragStartY;
+        drawCropCanvas();
+    });
+    window.addEventListener('mouseup', () => {
+        cropDragging = false;
+        if (cropCanvas) cropCanvas.style.cursor = 'grab';
+    });
+
+    // Touch support for mobile
+    cropCanvas.addEventListener('touchstart', e => {
+        const t = e.touches[0];
+        cropDragging = true;
+        cropDragStartX = t.clientX - cropOffsetX;
+        cropDragStartY = t.clientY - cropOffsetY;
+    }, { passive: true });
+    window.addEventListener('touchmove', e => {
+        if (!cropDragging) return;
+        const t = e.touches[0];
+        cropOffsetX = t.clientX - cropDragStartX;
+        cropOffsetY = t.clientY - cropDragStartY;
+        drawCropCanvas();
+    }, { passive: true });
+    window.addEventListener('touchend', () => { cropDragging = false; });
+}
+
 // Profile Update Logic
 const updateProfileForm = document.getElementById('update-profile-form');
 const profilePicInput = document.getElementById('profile-pic-input');
@@ -590,27 +795,37 @@ const profilePicInput = document.getElementById('profile-pic-input');
 if (profilePicInput) {
     profilePicInput.addEventListener('change', function (e) {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                document.getElementById('settings-profile-preview').src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            openCropModal(event.target.result);
+        };
+        reader.readAsDataURL(file);
     });
 }
+
 
 if (updateProfileForm) {
     updateProfileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fullname = document.getElementById('settings-fullname').value;
         const faculty = document.getElementById('settings-faculty').value;
-        const picFile = profilePicInput.files[0];
 
         const formData = new FormData();
         formData.append('fullname', fullname);
-        formData.append('faculty', faculty);
-        if (picFile) formData.append('profile_pic', picFile);
+
+        // Only append faculty if user is a student
+        if (currentUser.role === 'student') {
+            const faculty = document.getElementById('settings-faculty').value;
+            formData.append('faculty', faculty);
+        }
+
+        // Use the cropped blob if available, else fall back to raw file
+        if (croppedBlob) {
+            formData.append('profile_pic', croppedBlob, 'profile.jpg');
+        } else if (profilePicInput.files[0]) {
+            formData.append('profile_pic', profilePicInput.files[0]);
+        }
 
         try {
             const response = await apiFetch('/api/auth/update-profile', {
@@ -621,8 +836,14 @@ if (updateProfileForm) {
             showToast(response.message);
             // Update local state
             currentUser.fullname = fullname;
-            currentUser.faculty = faculty;
+            if (currentUser.role === 'student') {
+                currentUser.faculty = document.getElementById('settings-faculty').value;
+            }
             if (response.profile_pic) currentUser.profile_pic = response.profile_pic;
+            croppedBlob = null; // Clear the crop state after success
+
+            // Clear the file input as well
+            if (profilePicInput) profilePicInput.value = '';
 
             syncUserUI();
         } catch (err) {
