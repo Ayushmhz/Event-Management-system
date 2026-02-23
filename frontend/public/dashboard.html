@@ -326,7 +326,14 @@
         <main class="main-content">
             <header
                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; position: relative;">
-                <h2 id="section-title">Home</h2>
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                    <button id="back-to-home" class="btn btn-outline"
+                        style="display: none; padding: 0.5rem 0.9rem; font-size: 0.85rem; border-radius: 10px; border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);"
+                        onclick="showSection('home')">
+                        ← Back
+                    </button>
+                    <h2 id="section-title" style="margin: 0;">Home</h2>
+                </div>
                 <div style="display: flex; align-items: center; gap: 1.5rem;">
                     <div id="admin-actions" style="display: none;">
                         <button class="btn btn-primary" onclick="openModal()">+ Create Event</button>

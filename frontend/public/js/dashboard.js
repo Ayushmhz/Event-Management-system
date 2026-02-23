@@ -353,6 +353,12 @@ function showSection(section) {
     });
     tabs.forEach(t => t.classList.remove('active'));
 
+    // Toggle Back Button visibility
+    const backBtn = document.getElementById('back-to-home');
+    if (backBtn) {
+        backBtn.style.display = section === 'home' ? 'none' : 'block';
+    }
+
     currentActiveSection = section;
     const targetId = section === 'home' ? 'home-section' :
         section === 'browse' ? 'browse-section' :
