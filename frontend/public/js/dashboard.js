@@ -126,28 +126,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadEvents(force = false) {
-    if (!force && allEvents.length > 0) {
+    // If we have data, show it immediately
+    if (allEvents.length > 0) {
         renderEvents();
         if ((currentUser.role || '').toLowerCase() === 'admin') renderManageTable();
     }
 
     try {
         const freshEvents = await apiFetch('/api/events');
+
+        // Flicker Prevention: Only re-render if data has actually changed
+        if (allEvents.length > 0 && JSON.stringify(freshEvents) === JSON.stringify(allEvents)) {
+            return;
+        }
+
         allEvents = freshEvents;
         renderEvents();
         if ((currentUser.role || '').toLowerCase() === 'admin') renderManageTable();
     } catch (err) {
-        showToast('Failed to load events', 'error');
+        console.error('Events load error:', err);
     }
 }
 
 function renderEvents() {
     const container = document.getElementById('browse-section');
-    container.innerHTML = allEvents.map(event => {
+    if (!container) return;
+
+    const newHTML = allEvents.map(event => {
         const isEnded = event.status === 'ended' || (event.registration_deadline && new Date(event.registration_deadline) < new Date());
 
         return `
-        <div class="glass animate-fade event-card" onclick="viewEventDetails(${event.id})" style="cursor: pointer; padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; ${isEnded ? 'filter: grayscale(1); opacity: 0.7;' : ''}">
+        <div class="glass event-card" onclick="viewEventDetails(${event.id})" style="cursor: pointer; padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; ${isEnded ? 'filter: grayscale(1); opacity: 0.7;' : ''}">
             <div style="height: 160px; overflow: hidden; position: relative;">
                 <img src="${event.image_url || 'https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'}" 
                     style="width: 100%; height: 100%; object-fit: cover; transition: 0.5s;">
@@ -179,12 +188,18 @@ function renderEvents() {
             </div>
         </div>
     `}).join('');
+
+    if (container.innerHTML.trim() !== newHTML.trim()) {
+        container.innerHTML = newHTML;
+    }
 }
 
 function renderManageTable() {
     const container = document.getElementById('manage-section');
-    container.innerHTML = allEvents.map(event => `
-        <div class="event-card animate-fade" onclick="viewEventDetails(${event.id})">
+    if (!container) return;
+
+    const newHTML = allEvents.map(event => `
+        <div class="event-card" onclick="viewEventDetails(${event.id})">
             <div class="image-container">
                 <img src="${event.image_url || 'https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'}" style="${event.status === 'ended' ? 'filter: grayscale(1); opacity: 0.7;' : ''}">
                 <span class="badge" style="background: ${event.status === 'ended' ? '#475569' : 'var(--success)'};">
@@ -204,6 +219,10 @@ function renderManageTable() {
             </div>
         </div>
     `).join('');
+
+    if (container.innerHTML.trim() !== newHTML.trim()) {
+        container.innerHTML = newHTML;
+    }
 }
 
 function viewEventDetails(id) {
@@ -268,13 +287,17 @@ async function registerForEvent(eventId) {
 
 async function loadMyRegistrations() {
     try {
-        const regs = await apiFetch('/api/registrations/my-registrations');
         const container = document.getElementById('my-regs-section');
-        if (regs.length === 0) {
+        const freshRegs = await apiFetch('/api/registrations/my-registrations');
+
+        if (freshRegs.length === 0) {
             container.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">You haven\'t registered for any events yet.</p>';
             return;
         }
-        container.innerHTML = regs.map(reg => `
+
+        // Potential re-render check (though regs change less often)
+        const currentHTML = container.innerHTML;
+        const newHTML = freshRegs.map(reg => `
             <div class="event-card animate-fade" onclick="viewEventDetails(${reg.id})">
                 <div class="image-container">
                     <img src="${reg.image_url || 'https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'}">
@@ -286,6 +309,10 @@ async function loadMyRegistrations() {
                 </div>
             </div>
         `).join('');
+
+        if (currentHTML.trim() !== newHTML.trim() || container.innerHTML.includes('haven\'t registered')) {
+            container.innerHTML = newHTML;
+        }
     } catch (err) {
         console.error('Failed to load registrations:', err);
         showToast('Failed to load registrations', 'error');
@@ -484,10 +511,11 @@ async function loadAllRegistrations() {
             });
         });
 
-        tbody.innerHTML = html;
-
+        if (tbody.innerHTML.trim() !== html.trim()) {
+            tbody.innerHTML = html;
+        }
     } catch (err) {
-        showToast('Failed to load registrations', 'error');
+        console.error('Registration report load error:', err);
     }
 }
 
@@ -496,7 +524,8 @@ async function loadAllUsers() {
     try {
         const users = await apiFetch('/api/auth/students');
         const tbody = document.getElementById('users-table-body');
-        tbody.innerHTML = users.map(user => `
+        if (!tbody) return;
+        const newHTML = users.map(user => `
             <tr style="border-bottom: 1px solid var(--glass-border);">
                 <td style="padding: 1rem;">${user.fullname}</td>
                 <td style="padding: 1rem;">${user.faculty || '-'}</td>
@@ -510,8 +539,12 @@ async function loadAllUsers() {
                 </td>
             </tr>
         `).join('');
+
+        if (tbody.innerHTML.trim() !== newHTML.trim()) {
+            tbody.innerHTML = newHTML;
+        }
     } catch (err) {
-        showToast(err.message, 'error');
+        console.error('Users load error:', err);
     }
 }
 
@@ -537,11 +570,11 @@ function openModal(isEdit = false) {
         document.getElementById('event-thumbnail').value = ''; // Ensure file input is cleared
         document.getElementById('image-preview').style.display = 'none';
     }
-    eventModal.style.display = 'flex';
+    if (eventModal) eventModal.style.display = 'flex';
 }
 
 function closeModal() {
-    eventModal.style.display = 'none';
+    if (eventModal) eventModal.style.display = 'none';
 }
 
 function editEvent(id) {
