@@ -541,13 +541,19 @@ async function exportRegistrationsToExcel() {
             return;
         }
 
-        // Format data for SheetJS
-        const formattedData = rows.map(reg => ({
-            'Student Name': reg.student_name,
-            'Faculty': reg.faculty || '-',
-            'Event Registered': reg.event_name,
-            'Registration Time': new Date(reg.registration_date).toLocaleString()
-        }));
+        // Format data for SheetJS - One name per student grouping
+        let lastUserId = null;
+        const formattedData = rows.map(reg => {
+            const isFirstOccurrence = reg.user_id !== lastUserId;
+            lastUserId = reg.user_id;
+
+            return {
+                'Student Name': isFirstOccurrence ? reg.student_name : '',
+                'Faculty': isFirstOccurrence ? (reg.faculty || '-') : '',
+                'Event Registered': reg.event_name,
+                'Registration Time': new Date(reg.registration_date).toLocaleString()
+            };
+        });
 
         // Create workbook and worksheet
         const worksheet = XLSX.utils.json_to_sheet(formattedData);
