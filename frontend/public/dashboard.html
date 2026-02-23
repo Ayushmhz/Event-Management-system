@@ -445,8 +445,15 @@
             <!-- Student Registrations Section (Admin Only) -->
             <section id="all-regs-section" style="display: none;">
                 <div class="glass" style="padding: 1rem; border-radius: 12px; overflow-x: auto;">
-                    <h3 style="padding: 0.5rem 1rem 1rem; -webkit-text-fill-color: white; background: none;">📋 Student
-                        Registrations</h3>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem 1rem;">
+                        <h3 style="margin: 0; -webkit-text-fill-color: white; background: none;">📋 Student
+                            Registrations</h3>
+                        <button class="btn btn-primary" onclick="exportRegistrationsToExcel()"
+                            style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                            📊 Export to Excel
+                        </button>
+                    </div>
                     <table id="grouped-regs-table" style="width: 100%; border-collapse: collapse; text-align: left;">
                         <thead>
                             <tr
@@ -702,6 +709,7 @@
     </div>
 
     <script src="js/utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 

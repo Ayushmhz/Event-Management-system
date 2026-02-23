@@ -531,6 +531,48 @@ async function loadAllRegistrations() {
     }
 }
 
+async function exportRegistrationsToExcel() {
+    try {
+        showToast('Preparing your Excel file...');
+        const rows = await apiFetch('/api/registrations/grouped');
+
+        if (!rows || rows.length === 0) {
+            showToast('No data found to export.', 'error');
+            return;
+        }
+
+        // Format data for SheetJS
+        const formattedData = rows.map(reg => ({
+            'Student Name': reg.student_name,
+            'Faculty': reg.faculty || '-',
+            'Event Registered': reg.event_name,
+            'Registration Time': new Date(reg.registration_date).toLocaleString()
+        }));
+
+        // Create workbook and worksheet
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Registrations");
+
+        // Auto-size columns for better visibility
+        const wscols = [
+            { wch: 25 }, // Name
+            { wch: 15 }, // Faculty
+            { wch: 35 }, // Event
+            { wch: 25 }  // Time
+        ];
+        worksheet['!cols'] = wscols;
+
+        // Write and download the file
+        XLSX.writeFile(workbook, `Student_Registrations_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`);
+        showToast('Excel file downloaded successfully!', 'success');
+
+    } catch (err) {
+        console.error('Export error:', err);
+        showToast('Failed to generate Excel file', 'error');
+    }
+}
+
 
 async function loadAllUsers() {
     try {
