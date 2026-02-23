@@ -1,6 +1,6 @@
 let currentUser = null;
 let allEvents = [];
-let currentActiveSection = 'home';
+let currentActiveSection = null;
 
 function syncUserUI() {
     if (!currentUser) return;
@@ -399,19 +399,23 @@ async function updateHomeStats() {
         document.getElementById('welcome-name').textContent = fullName;
 
         // Active Events Count
-        const events = await apiFetch('/api/events');
+        // Use allEvents if already loaded, otherwise fetch
+        const events = allEvents.length > 0 ? allEvents : await apiFetch('/api/events');
         const activeEvents = events.filter(e => e.status !== 'ended');
-        document.getElementById('stat-events-count').textContent = activeEvents.length;
+        const statCount = document.getElementById('stat-events-count');
+        if (statCount) statCount.textContent = activeEvents.length;
 
         // My Registrations Count
         const myRegs = await apiFetch('/api/registrations/my-registrations');
-        document.getElementById('stat-my-regs').textContent = myRegs.length;
+        const statRegs = document.getElementById('stat-my-regs');
+        if (statRegs) statRegs.textContent = myRegs.length;
 
         // New events this week
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        const newEvents = events.filter(e => new Date(e.created_at) > oneWeekAgo);
-        document.getElementById('stat-new').textContent = newEvents.length;
+        const newEventsList = events.filter(e => new Date(e.created_at) > oneWeekAgo);
+        const statNew = document.getElementById('stat-new');
+        if (statNew) statNew.textContent = newEventsList.length;
 
     } catch (err) {
         console.error('Stats update error:', err);
