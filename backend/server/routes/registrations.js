@@ -94,13 +94,73 @@ router.get('/event/:id', authenticateToken, isAdmin, async (req, res) => {
     }
 });
 
+// Get unique students who have registered (Admin only) — sorted by latest registration
+router.get('/unique-students', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const [rows] = await db.execute(`
+            SELECT u.id as user_id, u.fullname as student_name, u.faculty,
+                   MAX(r.registration_date) as last_registered
+            FROM registrations r
+            JOIN users u ON r.user_id = u.id
+            GROUP BY u.id, u.fullname, u.faculty
+            ORDER BY last_registered DESC
+        `);
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all events registered by a specific student (Admin only)
+router.get('/by-student/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const [rows] = await db.execute(`
+            SELECT e.title as event_name, e.event_date, e.location, r.registration_date
+            FROM registrations r
+            JOIN events e ON r.event_id = e.id
+            WHERE r.user_id = ?
+            ORDER BY r.registration_date DESC
+        `, [req.params.userId]);
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all registrations grouped by student (Admin only)
+router.get('/grouped', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const [rows] = await db.execute(`
+            SELECT 
+                u.id as user_id,
+                u.fullname as student_name,
+                u.faculty,
+                e.title as event_name,
+                r.registration_date
+            FROM registrations r
+            JOIN users u ON r.user_id = u.id
+            JOIN events e ON r.event_id = e.id
+            ORDER BY 
+                (SELECT MAX(r2.registration_date) FROM registrations r2 WHERE r2.user_id = u.id) DESC,
+                u.id,
+                r.registration_date DESC
+        `);
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Get all registrations across all events (Admin only)
 router.get('/all', authenticateToken, isAdmin, async (req, res) => {
     try {
         const [rows] = await db.execute(`
-            SELECT r.id as reg_id, r.registration_date, u.fullname as student_name, u.email, u.faculty, e.title as event_title
-            FROM registrations r 
-            JOIN users u ON r.user_id = u.id 
+            SELECT u.fullname as student_name, u.faculty, e.title as event_title, r.registration_date
+            FROM registrations r
+            JOIN users u ON r.user_id = u.id
             JOIN events e ON r.event_id = e.id
             ORDER BY r.registration_date DESC
         `);

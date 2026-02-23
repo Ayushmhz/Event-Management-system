@@ -438,18 +438,20 @@
             <!-- Student Registrations Section (Admin Only) -->
             <section id="all-regs-section" style="display: none;">
                 <div class="glass" style="padding: 1rem; border-radius: 12px; overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <h3 style="padding: 0.5rem 1rem 1rem; -webkit-text-fill-color: white; background: none;">📋 Student
+                        Registrations</h3>
+                    <table id="grouped-regs-table" style="width: 100%; border-collapse: collapse; text-align: left;">
                         <thead>
-                            <tr style="border-bottom: 1px solid var(--glass-border);">
-                                <th style="padding: 1rem;">Student Name</th>
-                                <th style="padding: 1rem;">Faculty</th>
-                                <th style="padding: 1rem;">Email</th>
+                            <tr
+                                style="border-bottom: 2px solid var(--glass-border); color: var(--text-muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.07em;">
+                                <th style="padding: 1rem; width: 22%;">Student Name</th>
+                                <th style="padding: 1rem; width: 15%;">Faculty</th>
                                 <th style="padding: 1rem;">Event Registered</th>
-                                <th style="padding: 1rem;">Registration Time</th>
+                                <th style="padding: 1rem; width: 20%;">Registration Time</th>
                             </tr>
                         </thead>
-                        <tbody id="all-regs-table-body">
-                            <!-- Loaded via JS -->
+                        <tbody id="grouped-regs-table-body">
+                            <!-- Loaded via JS with rowspan grouping -->
                         </tbody>
                     </table>
                 </div>

@@ -337,25 +337,75 @@ async function updateHomeStats() {
     }
 }
 
+// Load student registrations into a single grouped table (Admin only)
 async function loadAllRegistrations() {
     try {
-        const regs = await apiFetch('/api/registrations/all');
-        const tbody = document.getElementById('all-regs-table-body');
-        tbody.innerHTML = regs.map(reg => `
-            <tr style="border-bottom: 1px solid var(--glass-border);">
-                <td style="padding: 1rem;">${reg.student_name}</td>
-                <td style="padding: 1rem;">${reg.faculty || '-'}</td>
-                <td style="padding: 1rem;">${reg.email}</td>
-                <td style="padding: 1rem;">${reg.event_title}</td>
-                <td style="padding: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-                    ${new Date(reg.registration_date).toLocaleString()}
-                </td>
-            </tr>
-        `).join('');
+        const rows = await apiFetch('/api/registrations/grouped');
+        const tbody = document.getElementById('grouped-regs-table-body');
+
+        if (!rows || rows.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">No registrations found.</td></tr>`;
+            return;
+        }
+
+        // Group rows by user_id so we can calculate rowspan
+        const grouped = {};
+        const order = []; // preserve student order
+        rows.forEach(row => {
+            if (!grouped[row.user_id]) {
+                grouped[row.user_id] = [];
+                order.push(row.user_id);
+            }
+            grouped[row.user_id].push(row);
+        });
+
+        // Build HTML with rowspan for student name & faculty
+        let html = '';
+        order.forEach((userId, groupIndex) => {
+            const studentRows = grouped[userId];
+            const count = studentRows.length;
+
+            // Alternate background for visual grouping
+            const groupBg = groupIndex % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(99,102,241,0.04)';
+
+            studentRows.forEach((reg, i) => {
+                const isFirst = i === 0;
+                const isLast = i === count - 1;
+                const topBorder = isFirst ? '2px solid var(--glass-border)' : '1px solid rgba(255,255,255,0.05)';
+                const bottomBorder = isLast ? '2px solid var(--glass-border)' : 'none';
+
+                html += `<tr style="background: ${groupBg}; border-top: ${topBorder}; border-bottom: ${bottomBorder};">`;
+
+                // Student name & faculty — only on first row, with rowspan
+                if (isFirst) {
+                    html += `
+                        <td rowspan="${count}" style="padding: 1rem; font-weight: 700; vertical-align: top; border-right: 1px solid rgba(255,255,255,0.07);">
+                            ${reg.student_name}
+                        </td>
+                        <td rowspan="${count}" style="padding: 1rem; vertical-align: top; border-right: 1px solid rgba(255,255,255,0.07);">
+                            <span style="background: rgba(99,102,241,0.15); color: var(--primary); padding: 0.2rem 0.7rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;">
+                                ${reg.faculty || '-'}
+                            </span>
+                        </td>`;
+                }
+
+                // Event name & registration time — every row
+                html += `
+                    <td style="padding: 0.85rem 1rem;">• ${reg.event_name}</td>
+                    <td style="padding: 0.85rem 1rem; font-size: 0.83rem; color: var(--text-muted);">
+                        ${new Date(reg.registration_date).toLocaleString()}
+                    </td>
+                </tr>`;
+            });
+        });
+
+        tbody.innerHTML = html;
+
     } catch (err) {
         showToast('Failed to load registrations', 'error');
     }
 }
+
 
 async function loadAllUsers() {
     try {
