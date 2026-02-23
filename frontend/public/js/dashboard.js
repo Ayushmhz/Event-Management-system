@@ -270,6 +270,12 @@ function showSection(section) {
         const defaultImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.fullname || currentUser.name)}&background=6366f1&color=fff`;
         profilePreview.src = currentUser.profile_pic || defaultImg;
     }
+
+    // Auto-close sidebar on mobile after clicking a section
+    const sidebarContent = document.getElementById('sidebar-content');
+    if (window.innerWidth <= 992 && sidebarContent.classList.contains('active')) {
+        toggleMobileMenu();
+    }
 }
 
 function switchSettingsTab(tab) {
