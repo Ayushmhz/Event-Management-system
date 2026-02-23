@@ -208,6 +208,9 @@ function renderManageTable() {
             </div>
             <div class="card-body">
                 <h3>${event.title}</h3>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span>👥</span> ${event.registered_count || 0}/${event.capacity} registered
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                     <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem;" onclick="event.stopPropagation(); editEvent(${event.id})">Edit</button>
                     <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem;" onclick="event.stopPropagation(); viewAttendees(${event.id})">Roster</button>
@@ -298,13 +301,16 @@ async function loadMyRegistrations() {
         // Potential re-render check (though regs change less often)
         const currentHTML = container.innerHTML;
         const newHTML = freshRegs.map(reg => `
-            <div class="event-card animate-fade" onclick="viewEventDetails(${reg.id})">
+            <div class="event-card" onclick="viewEventDetails(${reg.id})">
                 <div class="image-container">
                     <img src="${reg.image_url || 'https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'}">
                     <span class="badge" style="background: var(--success);">${new Date(reg.event_date).toLocaleDateString()}</span>
                 </div>
                 <div class="card-body">
-                    <h3>${reg.title}</h3>
+                    <h3 style="margin-bottom: 0.5rem;">${reg.title}</h3>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <span>👥</span> ${reg.registered_count || 0}/${reg.capacity} registered
+                    </div>
                     <button onclick="event.stopPropagation(); cancelRegistration(${reg.reg_id})" class="btn btn-outline" style="width: 100%; color: var(--danger); border-color: var(--danger); padding: 0.4rem; font-size: 0.85rem;">Cancel Registration</button>
                 </div>
             </div>

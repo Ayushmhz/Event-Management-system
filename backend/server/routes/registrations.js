@@ -54,7 +54,8 @@ router.post('/', authenticateToken, async (req, res) => {
 router.get('/my-registrations', authenticateToken, async (req, res) => {
     try {
         const [rows] = await db.execute(`
-            SELECT r.id as reg_id, r.registration_date, e.* 
+            SELECT r.id as reg_id, r.registration_date, e.*,
+            (SELECT COUNT(*) FROM registrations r2 WHERE r2.event_id = e.id) as registered_count
             FROM registrations r 
             JOIN events e ON r.event_id = e.id 
             WHERE r.user_id = ?
