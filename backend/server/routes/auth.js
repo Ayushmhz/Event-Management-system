@@ -72,6 +72,15 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        // Role-based Authorization check
+        const { requiredRole } = req.body;
+        if (requiredRole && user.role !== requiredRole) {
+            const errorMessage = requiredRole === 'admin'
+                ? 'Access Denied .Admin access only'
+                : 'Please Use Admin Portal';
+            return res.status(403).json({ message: errorMessage });
+        }
+
         const token = jwt.sign(
             { id: user.id, role: user.role, name: user.fullname },
             process.env.JWT_SECRET,

@@ -3,10 +3,16 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
+    // Determine required role based on URL hash
+    let requiredRole = 'student';
+    if (window.location.hash === '#admin') {
+        requiredRole = 'admin';
+    }
+
     try {
         const data = await apiFetch('/api/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password, requiredRole })
         });
 
         localStorage.setItem('token', data.token);

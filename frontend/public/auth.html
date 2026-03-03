@@ -177,7 +177,8 @@
             </form>
 
             <div style="text-align: center; margin-top: 2rem;">
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Admin restricted access
+                <p id="admin-notice" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Admin
+                    restricted access
                     only.</p>
                 <a href="index.html" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">← Back
                     to Home</a>
@@ -223,14 +224,19 @@
 
         // Context awareness based on URL
         const loginBtn = document.getElementById('login-btn');
-        if (window.location.hash === '#register') {
-            switchTab('register');
-        } else if (window.location.hash === '#admin') {
+        const adminNotice = document.getElementById('admin-notice');
+
+        if (window.location.hash === '#admin') {
             document.getElementById('reg-tab').style.display = 'none';
             loginBtn.textContent = 'Access Portal';
+            if (adminNotice) adminNotice.style.display = 'block';
             switchTab('login');
         } else {
             loginBtn.textContent = 'Log In';
+            if (adminNotice) adminNotice.style.display = 'none';
+            if (window.location.hash === '#register') {
+                switchTab('register');
+            }
         }
     </script>
 </body>
