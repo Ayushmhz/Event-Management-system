@@ -301,7 +301,7 @@ async function loadMyRegistrations() {
         // Potential re-render check (though regs change less often)
         const currentHTML = container.innerHTML;
         const newHTML = freshRegs.map(reg => `
-            <div class="event-card" onclick="viewEventDetails(${reg.id})">
+            <div class="event-card" onclick="viewEventDetails(${reg.event_id})">
                 <div class="image-container">
                     <img src="${reg.image_url || 'https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'}">
                     <span class="badge" style="background: var(--success);">${new Date(reg.event_date).toLocaleDateString()}</span>
@@ -321,7 +321,7 @@ async function loadMyRegistrations() {
         }
     } catch (err) {
         console.error('Failed to load registrations:', err);
-        showToast('Failed to load registrations', 'error');
+        showToast(`Failed to load registrations: ${err.message}`, 'error');
     }
 }
 
@@ -518,6 +518,10 @@ async function loadAllRegistrations() {
                     <td style="padding: 0.85rem 1rem;">• ${reg.event_name}</td>
                     <td style="padding: 0.85rem 1rem; font-size: 0.83rem; color: var(--text-muted);">
                         ${new Date(reg.registration_date).toLocaleString()}
+                    </td>
+                    <td style="padding: 0.85rem 1rem; text-align: right;">
+                        <button class="btn btn-outline" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3); font-size: 0.75rem; padding: 0.3rem 0.7rem;" 
+                            onclick="deleteRegistrationAdmin(${reg.reg_id})">Delete</button>
                     </td>
                 </tr>`;
             });
@@ -740,13 +744,19 @@ async function viewAttendees(eventId) {
             list.innerHTML = '<p>No students registered yet.</p>';
         } else {
             list.innerHTML = attendees.map(a => `
-                <div class="glass" style="padding: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                <div class="glass" style="padding: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-weight: 600;">${a.fullname} <span style="font-size:0.8em; color:var(--primary); margin-left:5px;">${a.faculty || ''}</span></div>
                         <div style="font-size: 0.8rem; color: var(--text-muted);">${a.email}</div>
                     </div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">
-                        ${new Date(a.registration_date).toLocaleDateString()}
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: right;">
+                            <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; opacity: 0.6;">Registered</div>
+                            ${new Date(a.registration_date).toLocaleDateString()}
+                        </div>
+                        <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 8px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; transition: 0.2s;" 
+                            onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'"
+                            title="Remove student from event" onclick="removeStudentFromRoster(${eventId}, ${a.user_id}, '${a.fullname}')">❌</button>
                     </div>
                 </div>
             `).join('');
@@ -968,3 +978,26 @@ window.addEventListener('click', (event) => {
         event.target.style.display = "none";
     }
 });
+
+async function deleteRegistrationAdmin(regId) {
+    if (!confirm('Are you sure you want to delete this student registration? This action cannot be undone.')) return;
+    try {
+        const response = await apiFetch(`/api/registrations/admin/${regId}`, { method: 'DELETE' });
+        showToast(response.message);
+        loadAllRegistrations();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function removeStudentFromRoster(eventId, studentId, studentName) {
+    if (!confirm(`Are you sure you want to remove ${studentName} from this event? This will delete their registration record.`)) return;
+    try {
+        const response = await apiFetch(`/api/registrations/admin/${eventId}/${studentId}`, { method: 'DELETE' });
+        showToast(response.message);
+        viewAttendees(eventId); // Refresh the roster
+        loadEvents(); // Refresh capacity counts in background
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}

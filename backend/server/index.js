@@ -18,6 +18,12 @@ const frontendPath = path.resolve(__dirname, '../../frontend/public');
 app.use(cors());
 app.use(bodyParser.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
 // 1. Serve static files FIRST (images, CSS, JS)
 app.use(express.static(frontendPath));
 

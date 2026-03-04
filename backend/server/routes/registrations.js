@@ -52,15 +52,17 @@ router.post('/', authenticateToken, async (req, res) => {
 
 // Get user registrations
 router.get('/my-registrations', authenticateToken, async (req, res) => {
+    console.log('Accessing my-registrations for user:', req.user);
     try {
         const [rows] = await db.execute(`
-            SELECT r.id as reg_id, r.registration_date, e.*,
-            (SELECT COUNT(*) FROM registrations r2 WHERE r2.event_id = e.id) as registered_count
+            SELECT r.id as reg_id, e.id as event_id, r.registration_date, 
+                   e.title, e.description, e.event_date, e.event_time, e.location, e.capacity, e.image_url, e.status
             FROM registrations r 
             JOIN events e ON r.event_id = e.id 
             WHERE r.user_id = ?
             ORDER BY e.event_date ASC
         `, [req.user.id]);
+        console.log(`Fetched ${rows.length} registrations for user ${req.user.id}`);
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -83,7 +85,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.get('/event/:id', authenticateToken, isAdmin, async (req, res) => {
     try {
         const [rows] = await db.execute(`
-            SELECT r.id as reg_id, r.registration_date, u.fullname, u.email, u.faculty 
+            SELECT r.id as reg_id, u.id as user_id, r.registration_date, u.fullname, u.email, u.faculty 
             FROM registrations r 
             JOIN users u ON r.user_id = u.id 
             WHERE r.event_id = ?
@@ -135,6 +137,7 @@ router.get('/grouped', authenticateToken, isAdmin, async (req, res) => {
     try {
         const [rows] = await db.execute(`
             SELECT 
+                r.id as reg_id,
                 u.id as user_id,
                 u.fullname as student_name,
                 u.faculty,
@@ -149,6 +152,42 @@ router.get('/grouped', authenticateToken, isAdmin, async (req, res) => {
                 r.registration_date DESC
         `);
         res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Admin-only deletion of ANY registration
+router.delete('/admin/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const [result] = await db.execute('DELETE FROM registrations WHERE id = ?', [req.params.id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Registration not found or already deleted.' });
+        }
+
+        res.json({ message: 'Registration deleted successfully.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Admin-only: Remove specific student from specific event (Roster management)
+router.delete('/admin/:eventId/:studentId', authenticateToken, isAdmin, async (req, res) => {
+    const { eventId, studentId } = req.params;
+    try {
+        const [result] = await db.execute(
+            'DELETE FROM registrations WHERE event_id = ? AND user_id = ?',
+            [eventId, studentId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Registration record not found.' });
+        }
+
+        res.json({ message: 'Student removed from event successfully.' });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });

@@ -18,7 +18,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
 
-        showToast('Login successful! Redirecting...');
+        showToast('Login Successful!');
         setTimeout(() => {
             window.location.href = 'dashboard.html';
         }, 1500);
