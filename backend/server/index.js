@@ -15,7 +15,12 @@ const PORT = process.env.PORT || 5000;
 const frontendPath = path.resolve(__dirname, '../../frontend/public');
 
 // Middlewares
-app.use(cors());
+// Middlewares
+app.use(cors({
+    origin: '*', // For development, allow all. You can restrict this to your Vercel URL later.
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(bodyParser.json());
 
 // Request logging middleware

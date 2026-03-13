@@ -15,11 +15,21 @@ function syncUserUI() {
 
     // Better Image Path Handling
     let profilePic = currentUser.profile_pic;
-    if (!profilePic) {
+    if (!profilePic || profilePic === 'null' || profilePic === 'undefined') {
         profilePic = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=6366f1&color=fff`;
-    } else if (!profilePic.startsWith('http')) {
-        profilePic = profilePic.startsWith('/') ? profilePic : '/' + profilePic;
+    } else if (typeof profilePic === 'string' && !profilePic.startsWith('http')) {
+        if (profilePic.includes('college-events')) {
+            // Fix Cloudinary URLs that were saved as just the public ID or relative path
+            const cleanPath = profilePic.startsWith('/') ? profilePic.substring(1) : profilePic;
+            profilePic = `https://res.cloudinary.com/dr4c4n41l/image/upload/${cleanPath}`;
+        } else {
+            profilePic = profilePic.startsWith('/') ? profilePic : '/' + profilePic;
+        }
     }
+    
+    // Debug log for profile picture URL
+    console.log('Profile picture URL:', profilePic);
+
 
     // 2. Navigation & Actions Visibility
     const adminMgmt = document.getElementById('admin-mgmt-btn');
@@ -802,14 +812,22 @@ function openCropModal(src) {
         cropOffsetY = 0;
         document.getElementById('crop-zoom').value = 1;
 
-        // Auto-fit: scale so image fills the circle
+        // Auto-fit: scale so image fills the circle (Cover behavior)
         const fitScale = Math.max(CANVAS_SIZE / cropImage.width, CANVAS_SIZE / cropImage.height);
-        cropScale = fitScale;
-        document.getElementById('crop-zoom').value = Math.min(fitScale, 3);
+        
+        const slider = document.getElementById('crop-zoom');
+        if (slider) {
+            slider.min = (fitScale * 0.8).toFixed(4); // Allow slightly smaller than cover
+            slider.max = (fitScale * 5).toFixed(4);   // Up to 5x cover zoom
+            slider.step = "0.001";
+            slider.value = fitScale;
+        }
 
+        cropScale = fitScale;
         drawCropCanvas();
         document.getElementById('crop-modal').style.display = 'flex';
     };
+
     cropImage.src = src;
 }
 
@@ -837,14 +855,31 @@ function applyCrop() {
     }, 'image/jpeg', 0.92);
 }
 
-// Zoom slider
 const cropZoomSlider = document.getElementById('crop-zoom');
+// Zoom from center
+function setZoom(newScale) {
+    const oldScale = cropScale;
+    const minScale = parseFloat(cropZoomSlider.min) || 0.1;
+    const maxScale = parseFloat(cropZoomSlider.max) || 10;
+    
+    cropScale = Math.max(minScale, Math.min(maxScale, parseFloat(newScale)));
+
+    // Adjust offsets to zoom from center
+    if (oldScale > 0) {
+        cropOffsetX = (cropOffsetX * cropScale) / oldScale;
+        cropOffsetY = (cropOffsetY * cropScale) / oldScale;
+    }
+
+    if (cropZoomSlider) cropZoomSlider.value = cropScale;
+    drawCropCanvas();
+}
+
 if (cropZoomSlider) {
     cropZoomSlider.addEventListener('input', function () {
-        cropScale = parseFloat(this.value);
-        drawCropCanvas();
+        setZoom(this.value);
     });
 }
+
 
 // Drag to reposition
 const cropCanvas = document.getElementById('crop-canvas');
@@ -866,6 +901,13 @@ if (cropCanvas) {
         if (cropCanvas) cropCanvas.style.cursor = 'grab';
     });
 
+    // Wheel support for zooming
+    cropCanvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1; // Zoom out/in speed
+        setZoom(cropScale * delta);
+    }, { passive: false });
+
     // Touch support for mobile
     cropCanvas.addEventListener('touchstart', e => {
         const t = e.touches[0];
@@ -882,6 +924,7 @@ if (cropCanvas) {
     }, { passive: true });
     window.addEventListener('touchend', () => { cropDragging = false; });
 }
+
 
 // Profile Update Logic
 const updateProfileForm = document.getElementById('update-profile-form');
@@ -935,6 +978,10 @@ if (updateProfileForm) {
                 currentUser.faculty = document.getElementById('settings-faculty').value;
             }
             if (response.profile_pic) currentUser.profile_pic = response.profile_pic;
+            
+            // Persist the changes to localStorage
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            
             croppedBlob = null; // Clear the crop state after success
 
             // Clear the file input as well

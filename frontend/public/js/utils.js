@@ -1,4 +1,8 @@
-const API_BASE = ''; // Same origin
+// Update this URL AFTER you deploy your backend to Render
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? '' 
+    : 'https://your-backend-name.onrender.com'; 
+
 
 async function apiFetch(endpoint, options = {}) {
     let token = localStorage.getItem('token');
