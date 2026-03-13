@@ -1,7 +1,7 @@
 // Update this URL AFTER you deploy your backend to Render
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? '' 
-    : 'https://your-backend-name.onrender.com'; 
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? ''
+    : 'https://event-management-system-hh4l.onrender.com';
 
 
 async function apiFetch(endpoint, options = {}) {
