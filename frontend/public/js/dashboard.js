@@ -607,11 +607,13 @@ async function loadAllUsers() {
                 <td style="padding: 1rem; color: var(--text-muted); font-size: 0.85rem;">
                     ${new Date(user.created_at).toLocaleDateString()}
                 </td>
-                <td style="padding: 1rem; text-align: right;">
-                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 1rem;" 
-                        onclick="resetUserPassword(${user.id})">Reset Password</button>
+                <td style="padding: 1rem; text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;" 
+                        onclick="resetUserPassword(${user.id})">Reset</button>
+                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" 
+                        onclick="deleteUser(${user.id}, '${user.fullname}')">Delete</button>
                 </td>
-            </tr>
+</tr>
         `).join('');
 
         if (tbody.innerHTML.trim() !== newHTML.trim()) {
@@ -627,6 +629,17 @@ async function resetUserPassword(userId) {
     try {
         const response = await apiFetch(`/api/auth/reset-user-password/${userId}`, { method: 'POST' });
         showToast(response.message);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function deleteUser(userId, name) {
+    if (!confirm(`CAUTION: Are you sure you want to delete user "${name}"? This will also remove all their event registrations. This action cannot be undone.`)) return;
+    try {
+        const response = await apiFetch(`/api/auth/${userId}`, { method: 'DELETE' });
+        showToast(response.message);
+        loadAllUsers(); // Refresh the list
     } catch (err) {
         showToast(err.message, 'error');
     }

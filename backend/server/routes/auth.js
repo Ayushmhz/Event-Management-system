@@ -250,4 +250,22 @@ router.post('/reset-user-password/:userId', authenticateToken, isAdmin, async (r
     }
 });
 
+// Delete User (Admin only)
+router.delete('/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        
+        // Prevent admin from deleting themselves
+        if (parseInt(userId) === req.user.id) {
+            return res.status(400).json({ message: "You cannot delete your own admin account from here." });
+        }
+
+        await db.execute('DELETE FROM users WHERE id = ?', [userId]);
+        res.json({ message: 'User deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;
