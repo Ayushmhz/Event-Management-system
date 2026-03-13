@@ -1007,6 +1007,12 @@ if (changePasswordForm) {
             return showToast('New passwords do not match', 'error');
         }
 
+        // Frontend validation
+        const passwordCheck = validatePassword(newPassword);
+        if (!passwordCheck.valid) {
+            return showToast(passwordCheck.message, 'error');
+        }
+
         try {
             const response = await apiFetch('/api/auth/change-password', {
                 method: 'POST',

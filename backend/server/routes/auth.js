@@ -32,10 +32,30 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage: storage });
 
+// Password validation helper
+const validatePassword = (password) => {
+    if (!password || password.length < 6) {
+        return { valid: false, message: "Password must be at least 6 characters long" };
+    }
+
+    const commonPasswords = ['123456', '12345678', 'password', 'qwerty', '111111', 'abc123'];
+    if (commonPasswords.includes(password.toLowerCase())) {
+        return { valid: false, message: "Password is too weak. Please choose a stronger password." };
+    }
+
+    return { valid: true };
+};
+
 // Register
 router.post('/register', async (req, res) => {
     const { fullname, email, password, faculty } = req.body;
     const role = 'student';
+
+    // Password validation
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+        return res.status(400).json({ message: passwordCheck.message });
+    }
 
     try {
         const [existingUser] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
@@ -177,6 +197,12 @@ router.post('/update-profile', authenticateToken, upload.single('profile_pic'), 
 router.post('/change-password', authenticateToken, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
+
+    // Password validation for new password
+    const passwordCheck = validatePassword(newPassword);
+    if (!passwordCheck.valid) {
+        return res.status(400).json({ message: passwordCheck.message });
+    }
 
     try {
         const [users] = await db.execute('SELECT password FROM users WHERE id = ?', [userId]);

@@ -109,3 +109,16 @@ function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
+
+function validatePassword(password) {
+    if (!password || password.length < 6) {
+        return { valid: false, message: "Password must be at least 6 characters long" };
+    }
+
+    const commonPasswords = ['123456', '12345678', 'password', 'qwerty', '111111', 'abc123'];
+    if (commonPasswords.includes(password.toLowerCase())) {
+        return { valid: false, message: "Password is too weak. Please choose a stronger password." };
+    }
+
+    return { valid: true };
+}

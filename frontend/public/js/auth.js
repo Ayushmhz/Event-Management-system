@@ -35,6 +35,13 @@ document.getElementById('register-form')?.addEventListener('submit', async (e) =
 
     const faculty = document.getElementById('reg-faculty').value;
 
+    // Frontend validation
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+        showToast(passwordCheck.message, 'error');
+        return;
+    }
+
     try {
         await apiFetch('/api/auth/register', {
             method: 'POST',
