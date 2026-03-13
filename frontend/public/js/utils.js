@@ -115,9 +115,34 @@ function validatePassword(password) {
         return { valid: false, message: "Password must be at least 6 characters long" };
     }
 
+    // Must contain letters and numbers
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    if (!hasLetter || !hasNumber) {
+        return { valid: false, message: "Password must contain both letters and numbers" };
+    }
+
     const commonPasswords = ['123456', '12345678', 'password', 'qwerty', '111111', 'abc123'];
     if (commonPasswords.includes(password.toLowerCase())) {
-        return { valid: false, message: "Password is too weak. Please choose a stronger password." };
+        return { valid: false, message: "Password is too weak. Please choose a stronger password" };
+    }
+
+    // Check for repetitive characters
+    if (/^(.)\1+$/.test(password)) {
+        return { valid: false, message: "Password is too weak. Avoid simple repeating characters" };
+    }
+
+    // Check for patterns like "ababab"
+    if (password.length >= 6) {
+        const pattern = password.substring(0, 2);
+        let isPattern = true;
+        for (let i = 0; i < password.length; i += 2) {
+            if (password.substring(i, i + 2) !== pattern) {
+                isPattern = false;
+                break;
+            }
+        }
+        if (isPattern) return { valid: false, message: "Password is too weak. Please choose a stronger password" };
     }
 
     return { valid: true };
