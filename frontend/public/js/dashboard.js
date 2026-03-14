@@ -708,6 +708,20 @@ eventForm.addEventListener('submit', async (e) => {
     const eventDate = document.getElementById('event-date').value;
     const deadlineValue = document.getElementById('event-deadline').value;
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Client-side validation: Past date checks
+    if (eventDate && new Date(eventDate) < today) {
+        showToast('Event start date cannot be in the past.', 'error');
+        return;
+    }
+
+    if (deadlineValue && new Date(deadlineValue) < today) {
+        showToast('Registration deadline cannot be in the past.', 'error');
+        return;
+    }
+
     // Client-side validation: Deadline must be strictly earlier than Event Date
     if (deadlineValue && eventDate) {
         if (new Date(deadlineValue) >= new Date(eventDate)) {

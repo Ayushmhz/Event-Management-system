@@ -52,6 +52,19 @@ router.post('/', authenticateToken, isAdmin, upload.single('thumbnail'), async (
     const { title, description, event_date, event_time, location, capacity, registration_deadline } = req.body;
     const image_url = req.file ? req.file.path : 'https://images.unsplash.com/photo-1540575861501-7ad05823c9f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (new Date(event_date) < today) {
+        return res.status(400).json({ message: 'Event start date cannot be in the past.' });
+    }
+
+    if (registration_deadline) {
+        if (new Date(registration_deadline) < today) {
+            return res.status(400).json({ message: 'Registration deadline cannot be in the past.' });
+        }
+    }
+
     if (registration_deadline && event_date) {
         if (new Date(registration_deadline) >= new Date(event_date)) {
             return res.status(400).json({ message: 'Registration deadline must be earlier than the event start date.' });
@@ -84,6 +97,19 @@ router.post('/', authenticateToken, isAdmin, upload.single('thumbnail'), async (
 router.put('/:id', authenticateToken, isAdmin, upload.single('thumbnail'), async (req, res) => {
     const { title, description, event_date, event_time, location, capacity, registration_deadline } = req.body;
     const { id } = req.params;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (new Date(event_date) < today) {
+        return res.status(400).json({ message: 'Event start date cannot be in the past.' });
+    }
+
+    if (registration_deadline) {
+        if (new Date(registration_deadline) < today) {
+            return res.status(400).json({ message: 'Registration deadline cannot be in the past.' });
+        }
+    }
 
     if (registration_deadline && event_date) {
         if (new Date(registration_deadline) >= new Date(event_date)) {
