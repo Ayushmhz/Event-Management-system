@@ -705,14 +705,24 @@ eventForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('event-id').value;
 
+    const eventDate = document.getElementById('event-date').value;
+    const deadlineValue = document.getElementById('event-deadline').value;
+
+    // Client-side validation: Deadline must be strictly earlier than Event Date
+    if (deadlineValue && eventDate) {
+        if (new Date(deadlineValue) >= new Date(eventDate)) {
+            showToast('Registration deadline must be earlier than the event start date.', 'error');
+            return;
+        }
+    }
+
     const formData = new FormData();
     formData.append('title', document.getElementById('event-title').value);
     formData.append('description', document.getElementById('event-desc').value);
-    formData.append('event_date', document.getElementById('event-date').value);
+    formData.append('event_date', eventDate);
     formData.append('event_time', document.getElementById('event-time').value);
     formData.append('location', document.getElementById('event-location').value);
     formData.append('capacity', document.getElementById('event-capacity').value);
-    const deadlineValue = document.getElementById('event-deadline').value;
     formData.append('registration_deadline', deadlineValue || null);
 
     const imageFile = document.getElementById('event-thumbnail').files[0];
