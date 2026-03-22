@@ -59,7 +59,7 @@ const db = require('./db');
 const startServer = async (port) => {
     try {
         app.listen(port, '0.0.0.0', () => {
-            console.log(`🚀 Server launched on port ${port}`);
+            console.log(`🚀 Server launched on http://localhost:${port}`);
 
             // Check DB connection
             db.execute('SELECT 1')

@@ -21,7 +21,7 @@ async function debug() {
             LEFT JOIN users u ON e.created_by = u.id 
             ORDER BY e.event_date ASC, e.event_time ASC
         `;
-        
+
         const [rows] = await conn.execute(query);
         console.log('✅ Query success! Row count:', rows.length);
         console.log('Sample data:', rows[0]);
@@ -30,7 +30,7 @@ async function debug() {
         console.error('❌ QUERY FAILED!');
         console.error('Error Code:', err.code);
         console.error('Error Message:', err.message);
-        
+
         if (err.message.includes('Unknown column')) {
             console.log('💡 Tip: It looks like a column is missing. I will check the table structure...');
             const [columns] = await conn.execute('DESCRIBE events');

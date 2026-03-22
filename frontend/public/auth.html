@@ -234,10 +234,34 @@
 
         if (window.location.hash === '#admin') {
             document.getElementById('reg-tab').style.display = 'none';
+            const adminTab = document.querySelector('.tab:first-child');
+            adminTab.textContent = 'Admin Login Panel';
+            adminTab.style.borderBottom = 'none';
+            adminTab.style.background = 'transparent';
+            adminTab.style.cursor = 'default';
+            adminTab.style.fontSize = '1.4rem';
+            adminTab.style.fontWeight = '700';
+            adminTab.style.color = '#00a2ff';
+            adminTab.style.textShadow = 'none';
+            adminTab.style.letterSpacing = '1px';
+            adminTab.style.textTransform = 'uppercase';
+
             loginBtn.textContent = 'Access Portal';
             if (adminNotice) adminNotice.style.display = 'block';
             switchTab('login');
         } else {
+            const loginTab = document.querySelector('.tab:first-child');
+            loginTab.textContent = 'Login';
+            loginTab.style.borderBottom = '';
+            loginTab.style.background = '';
+            loginTab.style.cursor = 'pointer';
+            loginTab.style.fontSize = '';
+            loginTab.style.fontWeight = '';
+            loginTab.style.color = '';
+            loginTab.style.textShadow = '';
+            loginTab.style.letterSpacing = '';
+            loginTab.style.textTransform = '';
+            
             loginBtn.textContent = 'Log In';
             if (adminNotice) adminNotice.style.display = 'none';
             if (window.location.hash === '#register') {
