@@ -7,6 +7,7 @@
     --accent: #f43f5e;
     --bg-dark: #0f172a;
     --card-bg: rgba(30, 41, 59, 0.7);
+    --input-bg: rgba(255, 255, 255, 0.05);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --glass-border: rgba(255, 255, 255, 0.1);
@@ -135,6 +136,22 @@ input:focus,
 textarea:focus {
     border-color: var(--primary);
 }
+
+/* Fix for browser autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
+    -webkit-text-fill-color: var(--text-main) !important;
+    caret-color: var(--text-main) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+input:-webkit-autofill:focus {
+    border-color: var(--primary) !important;
+}
+
 
 /* Navigation */
 nav {
