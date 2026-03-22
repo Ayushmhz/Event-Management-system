@@ -81,5 +81,5 @@ You can run the project from the root directory:
     ```
 
     3. ## Project Screenshot
-    4. ![image alt](https://github.com/Ayushmhz/Event-Management-system/blob/main/Screenshots.jpg?raw=true)
+    4. ![image alt]([https://github.com/Ayushmhz/Event-Management-system/blob/main/Screenshots.jpg?raw=true](https://github.com/Ayushmhz/Event-Management-system/blob/main/backend/server/Screenshots.jpg?raw=true))
 
