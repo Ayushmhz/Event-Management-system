@@ -80,3 +80,6 @@ You can run the project from the root directory:
     http://localhost:5000/index.html
     ```
 
+    3. ## Project Screenshot
+    4. ![image alt](https://github.com/Ayushmhz/Event-Management-system/blob/main/Screenshots.jpg?raw=true)
+
